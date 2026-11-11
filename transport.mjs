@@ -7,7 +7,7 @@ export const BUS_STOPS=[
  {id:'yeouido',name:'여의도·서초',x:-190,z:122,dockX:-190,dockZ:136,distance:1170}
 ];
 export const PLATFORM_PHASES=['approach','boarding','exit'];
-export function createMetroJourney(from,to,line){if((from.country||'korea')!==(to.country||'korea'))return null;const path=transitRoute(from.id,to.id,line);if(!path)return null;return {from,to,line,path,total:routeLength(path),distance:0,phase:'approach',clock:0,doors:0,platformX:6,platformZ:0,arrivingOffset:48}}
+export function createMetroJourney(from,to,line){if((from.country||'korea')!==(to.country||'korea'))return null;const path=from.drive&&to.drive&&from.id!==to.id&&line===2?[from,{x:to.x,z:from.z},to].filter((p,i,a)=>!i||p.x!==a[i-1].x||p.z!==a[i-1].z):transitRoute(from.id,to.id,line);if(!path)return null;return {from,to,line,path,total:routeLength(path),distance:0,phase:'approach',clock:0,doors:0,platformX:6,platformZ:0,arrivingOffset:48}}
 export function stepMetro(j,dt){
  j.clock+=dt;
  if(j.phase==='approach'){j.arrivingOffset=Math.max(0,48*(1-clamp(j.clock/5,0,1))**2);if(j.clock>=5){j.phase='boarding';j.clock=0}}

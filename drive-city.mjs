@@ -49,6 +49,20 @@ export async function loadDriveCity(file, status) {
     const {min,max}=map.bounds;
     return x>=min.x&&x<=max.x&&z>=min.z&&z<=max.z;
   }
+  const roadAxes = roads.filter(({mesh})=>mesh.name!=='Pista').flatMap(({box})=>{
+    const size=box.getSize(new T.Vector3()), center=box.getCenter(new T.Vector3());
+    const east=size.x>size.z, length=Math.max(size.x,size.z), width=Math.min(size.x,size.z);
+    if(length<28||width<5||length<width*1.5||width>43)return [];
+    const y=floor(center.x,center.z,center.y);
+    return y===undefined||Math.abs(y)>.25?[]:[{point:{x:center.x,y,z:center.z},east,length,width}];
+  });
+  const runway=roadAxes.filter(r=>r.length>=80&&r.width>=12&&Math.hypot(r.point.x-spawn.x,r.point.z-spawn.z)>275)
+    .sort((a,b)=>b.length-a.length).find(r=>{
+      const {point,east}=r, half=Math.min(95,r.length*.38);
+      const from={x:point.x-(east?half:0),y:point.y+1.8,z:point.z-(east?0:half)};
+      const to={x:point.x+(east?half:0),y:from.y,z:point.z+(east?0:half)};
+      return !wall(from,to)&&[from,to].every(p=>floor(p.x,p.z,point.y)!==undefined);
+    });
   const roadsPath=new Path2D();
   const vertex=new T.Vector3();
   for(const {mesh} of roads) {
@@ -62,7 +76,7 @@ export async function loadDriveCity(file, status) {
       roadsPath.closePath();
     }
   }
-  function draw(ctx,size,player,yaw,expanded,actors) {
+  function draw(ctx,size,player,yaw,expanded,actors,facilities=[],vehicles=[]) {
     const range=expanded?2800:220, scale=size/(2*range);
     const center=expanded?{x:140000,z:140000}:player;
     const px=x=>size/2+(x-center.x)*scale, pz=z=>size/2+(z-center.z)*scale;
@@ -71,9 +85,19 @@ export async function loadDriveCity(file, status) {
     ctx.save();ctx.translate(px(140000),pz(140000));ctx.scale(scale,scale);
     ctx.fillStyle='#7f9996';ctx.fill(roadsPath);ctx.restore();
     for(const p of actors){
-      if(p.hp<=0||(!p.enemy&&!p.ally))continue;
-      ctx.fillStyle=p.ally?'#81dcff':'#ef926c';
-      ctx.fillRect(px(p.root.position.x)-3,pz(p.root.position.z)-3,6,6);
+      if(p.hp<=0||(!p.enemy&&!p.ally&&expanded))continue;
+      const radius=p.enemy||p.ally?3:1.4;
+      ctx.fillStyle=p.ally?'#81dcff':p.enemy?'#ef926c':'#bfc9bd';
+      ctx.fillRect(px(p.root.position.x)-radius,pz(p.root.position.z)-radius,radius*2,radius*2);
+    }
+    ctx.fillStyle='#e8dcad';
+    if(!expanded)for(const v of vehicles)if(!v.destroyed)ctx.fillRect(px(v.x)-2,pz(v.z)-2,4,4);
+    ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    for(const f of facilities){
+      const x=px(f.x),z=pz(f.z);
+      ctx.fillStyle='#12242e';ctx.fillRect(x-8,z-8,16,16);
+      ctx.strokeStyle='#8bdcc9';ctx.strokeRect(x-8,z-8,16,16);
+      ctx.fillStyle='#e6fff4';ctx.fillText(f.icon,x,z);
     }
     ctx.save();ctx.translate(px(player.x),pz(player.z));ctx.rotate(-yaw);
     ctx.fillStyle='#efff89';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(-6,7);ctx.fill();ctx.restore();
@@ -87,6 +111,6 @@ export async function loadDriveCity(file, status) {
   };
   const heading=headings.reduce((best,value)=>sight(value)>sight(best)?value:best,0);
   model.visible=false;
-  return {model,spawn,sites,heading,contains,floor,wall,move,draw};
+  return {model,spawn,sites,heading,contains,floor,wall,move,draw,roadAxes,runway};
 }
 
