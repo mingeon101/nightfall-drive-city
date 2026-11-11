@@ -1,0 +1,10 @@
+import {PENINSULA_CITIES,projectKorea} from './peninsula-data.mjs?v=33';
+// Fictional game front, deliberately schematic: not real military positions/routes.
+export const GAME_FRONT=[[126.55,37.93],[127.25,38.12],[127.8,38.30],[128.36,38.57]].map(([lon,lat])=>projectKorea(lon,lat));
+export const COMMAND_POST={x:-1040,z:-870,name:'북부 가상 지휘소'};
+export function frontZ(x){for(let i=1;i<GAME_FRONT.length;i++){const a=GAME_FRONT[i-1],b=GAME_FRONT[i];if(x<=b.x)return a.z+(b.z-a.z)*Math.max(0,Math.min(1,(x-a.x)/(b.x-a.x)))}return GAME_FRONT.at(-1).z}
+const city=id=>PENINSULA_CITIES.find(c=>c.id===id);
+const routes=[['seoul','suwon','cheongju','jeonju','gwangju','naju'],['chuncheon','cheongju','changwon','busan'],['sokcho','yangyang','ulsan','busan']];
+export function createNorthernForce(count=500){return Array.from({length:count},(_,id)=>{const lane=id%3,gate=GAME_FRONT[[0,1,3][lane]],offset=(id%11-5)*4,defender=id<12,cityGuard=id>=380,c=PENINSULA_CITIES.filter(c=>c.side==='north')[id%6];let x=gate.x+offset,z=gate.z-45-Math.floor(id/33)*7;if(defender){const a=id*Math.PI/6;x=COMMAND_POST.x+Math.cos(a)*32;z=COMMAND_POST.z+Math.sin(a)*32}else if(cityGuard){x=c.x+(id%7-3)*7;z=Math.min(c.z-45-id%5*3,frontZ(x)-20)}return {id,x,z,y:0,hp:defender?180:100,ammo:12,cool:1+(id%8)*.15,reloading:0,yaw:Math.PI,death:0,defender,cityGuard,crossed:false,leg:0,path:[{x:gate.x+offset,z:gate.z+35},...routes[lane].map(city)],start:{x,z},moving:false}})}
+export function advanceFront(unit,dt){if(unit.hp<=0||unit.defender||unit.cityGuard)return;const goal=unit.path[Math.min(unit.leg,unit.path.length-1)],dx=goal.x-unit.x,dz=goal.z-unit.z,d=Math.hypot(dx,dz),step=Math.min(d,dt*8);if(d>.01){unit.x+=dx/d*step;unit.z+=dz/d*step;unit.yaw=Math.atan2(-dx,-dz);unit.moving=true}if(d<5&&unit.leg<unit.path.length-1)unit.leg++;if(unit.z>frontZ(unit.x))unit.crossed=true}
+export function captureAllowed(position,army){return Math.hypot(position.x-COMMAND_POST.x,position.z-COMMAND_POST.z)<12&&position.y<3&&!army.some(a=>a.hp>0&&Math.hypot(a.x-COMMAND_POST.x,a.z-COMMAND_POST.z)<65)}

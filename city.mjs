@@ -56,15 +56,15 @@ export async function readCity(file, progress) {
   }
 }
 
-export function prepareCity(city, { scale = 1, flipX = false, pitch = 0 } = {}) {
+export function prepareCity(city, { scale = 1, flipX = false, pitch = 0, x = 0, z = 0 } = {}) {
   city.rotation.x += pitch;
   city.scale.multiplyScalar(scale);
   if (flipX) city.scale.x *= -1;
   city.updateMatrixWorld(true);
   const limits = new T.Box3().setFromObject(city);
   const middle = limits.getCenter(new T.Vector3());
-  city.position.x -= middle.x;
-  city.position.z -= middle.z;
+  city.position.x += x-middle.x;
+  city.position.z += z-middle.z;
   city.updateMatrixWorld(true);
   const bounds = new T.Box3().setFromObject(city);
   const solids = [];

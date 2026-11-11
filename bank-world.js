@@ -1,0 +1,9 @@
+import {EXPANDED_CITIES} from './seoul-expansion-data.mjs?v=33';
+import {blockedAt,groundHeight} from './core.mjs?v=33';
+export function buildBanks(T,scene,world,metropolis){const banks=[];const {m}=world;
+ for(const [index,city]of EXPANDED_CITIES.entries()){const anchor=city.id==='seoul'?{x:550,z:-400}:{x:city.x-180,z:city.z+280};let plot=null;for(let r=0;r<=480&&!plot;r+=32)for(let n=0;n<16;n++){const x=anchor.x+Math.cos(n*Math.PI/8)*r,z=anchor.z+Math.sin(n*Math.PI/8)*r;if(!blockedAt(x,z,25,world.blocks)&&groundHeight(x,z)<1){plot={x,z};break}}if(!plot)throw Error(city.name+' 은행 부지를 찾지 못했습니다.');const {x,z}=plot,root=new T.Group();scene.add(root);
+  function box(w,h,d,px,y,pz,mat,solid=false){const mesh=world.cube(w,h,d,px,y,pz,mat,false,root);if(solid)world.blocks.push({x:px,z:pz,w:w/2,d:d/2,bottom:y-h/2,top:y+h/2,kind:'bank'});return mesh}
+  box(32,.15,26,x,-.12,z,m.concrete);box(32,.3,26,x,6,z,m.blue);for(const side of [-1,1]){box(.5,6,26,x+side*16,3,z,m.white,true);box(13,6,.5,x+side*9.5,3,z+13,m.glass,true)}box(32,6,.5,x,3,z-13,m.white,true);box(6,3,.5,x,4.5,z+13,m.metal,true);box(12,1,2,x-7,.5,z-3,m.dark,true);box(7,3.4,5,x+8,1.7,z-6,m.metal);box(5,2.5,.3,x+8,1.4,z-3.4,m.black);for(let n=0;n<8;n++)box(.8,.25,.6,x+6.5+n%4,.7+Math.floor(n/4)*.3,z-3,m.yellow);
+  world.label(city.name+' 은행 · 금고',x,8,z,'#f2d799',25);const bank={id:city.id,name:city.name+' 은행',x,z:z+18,center:{x,z},vault:{x:x+8,z:z-1.5},reward:75000+index*2500,root};banks.push(bank);metropolis.facilities.push({...bank,kind:'bank'});const roof={x,z,w:16,d:13,top:6.2};metropolis.roofSurfaces.push(roof);
+ }return {banks,near(p){return banks.find(b=>Math.hypot(p.x-b.vault.x,p.z-b.vault.z)<3&&Math.abs(p.y)<2)},nearest(p){return banks.reduce((a,b)=>!a||Math.hypot(b.x-p.x,b.z-p.z)<Math.hypot(a.x-p.x,a.z-p.z)?b:a,null)},update(p){for(const b of banks)b.root.visible=Math.hypot(b.center.x-p.x,b.center.z-p.z)<850}};
+}

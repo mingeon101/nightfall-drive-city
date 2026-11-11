@@ -1,0 +1,16 @@
+import {normalizeCommand} from './command-sim.mjs?v=33';
+import {normalizeSupplies,normalizeBankCooldowns} from './economy-sim.mjs?v=33';
+import {sanitizeOperation} from './pyongyang-mission.mjs?v=33';
+import {CITY_IDS} from './city-map-data.mjs?v=33';
+import {PENINSULA_CITIES} from './peninsula-data.mjs?v=33';
+import {PLAYER_MAX_HEALTH} from './player-rules.mjs?v=33';
+import {sanitizeCivic} from './civic-sim.mjs?v=33';
+const finite=(v,f=0)=>typeof v==='number'&&Number.isFinite(v)?v:f;
+const bound=(v,a,b,f=a)=>Math.max(a,Math.min(b,finite(v,f)));
+export function normalizeSave(value){
+ if(!value||typeof value!=='object'||value.schemaVersion!==1||!value.player||!Array.isArray(value.inventory)||![4,5].includes(value.inventory.length))throw Error('지원하지 않거나 손상된 저장 데이터입니다.');
+ const oldCity=value.mode==='peninsula'&&value.worldVersion!==23&&!CITY_IDS.includes(value.cityId),cityId=CITY_IDS.includes(value.cityId)?value.cityId:value.mode==='peninsula'?PENINSULA_CITIES.reduce((a,b)=>Math.hypot(a.x-value.player.x,a.z-value.player.z)<Math.hypot(b.x-value.player.x,b.z-value.player.z)?a:b).id:'legacy',p=oldCity?{...value.player,x:0,z:25}:value.player;const cityProgress={};for(const [id,state]of Object.entries(value.cityProgress||{}))if(CITY_IDS.includes(id)&&state&&typeof state==='object')cityProgress[id]={defeatedEnemyIds:[...new Set((Array.isArray(state.defeatedEnemyIds)?state.defeatedEnemyIds:[]).filter(n=>Number.isInteger(n)&&n>=0&&n<2500))].slice(0,2500),operation:state.operation===true,playSeconds:bound(state.playSeconds,0,1e9)};return {foreignLeaders:Array.from({length:3},(_,i)=>bound(value.foreignLeaders?.[i],0,300,300)),command:normalizeCommand(value.command),supplies:normalizeSupplies(value.supplies),bankCooldowns:normalizeBankCooldowns(value.bankCooldowns),operation:sanitizeOperation(value.operation),schemaVersion:1,worldVersion:23,cityId,cityProgress,mode:value.mode==='peninsula'?'peninsula':'seoul',civic:sanitizeCivic(value.civic),playSeconds:bound(value.playSeconds,0,1e9),player:{x:bound(p.x,value.mode==='peninsula'?-2950:-179990,value.mode==='peninsula'?2950:179990,220),z:bound(p.z,value.mode==='peninsula'?-2950:-179990,value.mode==='peninsula'?2950:179990,-115),health:bound(p.health,1,PLAYER_MAX_HEALTH,PLAYER_MAX_HEALTH),armor:bound(p.armor,0,100),wallet:Math.floor(bound(p.wallet,0,1e9,50000))},selected:Math.floor(bound(value.selected,0,4)),inventory:Array.from({length:5},(_,i)=>value.inventory[i]??{owned:true,ammo:1,reserve:8}).map((it,i)=>({owned:i===0||it?.owned===true,ammo:Math.floor(bound(it?.ammo,0,[30,40,8,5,1][i])),reserve:Math.floor(bound(it?.reserve,0,100000))})),defeatedEnemyIds:[...new Set((Array.isArray(value.defeatedEnemyIds)?value.defeatedEnemyIds:[]).filter(i=>Number.isInteger(i)&&i>=0&&i<2500))].sort((a,b)=>a-b)};
+}
+export function localSaveKey(uid){if(typeof uid!=='string'||!uid||/[.#$\[\]/]/.test(uid))throw Error('유효하지 않은 사용자입니다.');return 'nightfall:v1:'+uid+':slot1'}
+export function normalizePhone(input){let p=String(input).trim().replace(/[\s()-]/g,'');if(/^01[016789]\d{7,8}$/.test(p))p='+82'+p.slice(1);if(!/^\+[1-9]\d{7,14}$/.test(p))throw Error('국가번호를 포함한 전화번호를 입력하세요. 예: +82 10 1234 5678');return p}
+export function shouldWriteRevision(current,expected){return (Number.isInteger(current?.revision)?current.revision:0)===expected}

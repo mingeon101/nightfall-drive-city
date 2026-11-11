@@ -1,0 +1,14 @@
+Seoul municipality boundary data
+Source: https://github.com/southkorea/seoul-maps
+Original file: kostat/2013/json/seoul_municipalities_geo_simple.json
+Original data source: KOSTAT Census administrative boundaries, 2013.
+Contributor credited by the source repository: Lucy Park.
+License: Apache License, Version 2.0. See LICENSE-geodata.txt.
+
+This game redistributes the original simplified boundary JSON and a modified
+projection in atlas-data.mjs. Coordinates were projected and compressed for
+a fictional game world; district centroids were approximated. The boundary
+data does NOT provide streets, individual buildings, transit operations,
+airport layouts, or military facilities. Those are generated game content.
+
+Administrative boundaries are historical 2013 data, not a current survey.

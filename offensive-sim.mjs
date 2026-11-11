@@ -1,0 +1,10 @@
+// Fictional encounter lines in the existing expanded Seoul map, not real deployments.
+export const OFFENSIVE_START=30,OFFENSIVE_WAVE_GAP=10,OFFENSIVE_INFANTRY=500,OFFENSIVE_VEHICLES=36;
+export const BATTLE_FRONTS=[{id:'dmz',name:'DMZ 전선',z:-3200,x:-240},{id:'hangang',name:'한강 전선',z:-42,x:-240}];
+export const INVASION_LANES=[-600,-240,1000];
+export const ADVANCE_Z=[-3150,-2750,-2350,-1950,-1550,-1150,-750,-350,120,600];
+export function offensiveWave(time){return !Number.isFinite(time)||time<OFFENSIVE_START?0:Math.min(3,1+Math.floor((time-OFFENSIVE_START)/OFFENSIVE_WAVE_GAP))}
+export function offensiveSpawn(index,vehicle=false){const lane=index%3,row=Math.floor(index/3),x=INVASION_LANES[lane]+(vehicle?(row%2?4:-4):(index%5-2)*2),z=-3340-row*(vehicle?22:3.3);return {x,z,lane,release:OFFENSIVE_START+Math.floor(index/(vehicle?12:Math.ceil(OFFENSIVE_INFANTRY/3)))*OFFENSIVE_WAVE_GAP}}
+export function offensiveGoal(unit,position,vehicle=false){unit.frontLeg??=0;const z=ADVANCE_Z[unit.frontLeg];if(Math.abs(position.z-z)<(vehicle?80:4)&&unit.frontLeg<ADVANCE_Z.length-1)unit.frontLeg++;return {x:INVASION_LANES[unit.frontLane],z:ADVANCE_Z[unit.frontLeg]}}
+export function offensiveReport(time,infantry,vehicles,defenders){const active=infantry.filter(p=>p.hp>0&&p.frontDeployed),armor=vehicles.filter(v=>v.deployed&&!v.destroyed&&v.enemyPilot.hp>0),enemyAt=z=>active.filter(p=>Math.abs(p.root.position.z-z)<350).length+armor.filter(v=>Math.abs(v.z-z)<350).length,allyAt=z=>defenders.filter(p=>p.hp>0&&Math.abs(p.root.position.z-z)<350).length;const living=infantry.some(p=>p.hp>0)||vehicles.some(v=>!v.destroyed&&v.enemyPilot.hp>0),south=active.some(p=>p.root.position.z>70)||armor.some(v=>v.type==='tank'&&v.z>70),han=enemyAt(-42);const phase=time<30?0:!living?4:south?3:han?2:1;return [phase,offensiveWave(time),active.length,armor.length,enemyAt(-3200),han,allyAt(-3200),allyAt(-42)]}
+export function sanitizeOffensiveReport(raw){return Array.isArray(raw)&&raw.length===8&&raw.every((n,i)=>Number.isInteger(n)&&n>=0&&n<=[4,3,500,36,1000,1000,200,200][i])?raw.slice():null}
