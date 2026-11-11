@@ -1,0 +1,4 @@
+*.zip
+*.fbx
+node_modules/
+
