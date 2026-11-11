@@ -53,7 +53,7 @@ const droneGeometry = new T.SphereGeometry(.54,12,8);
 const droneShell = new T.MeshStandardMaterial({color:0x414b4f,metalness:.7,roughness:.4});
 const droneEye = new T.MeshBasicMaterial({color:0xff654b});
 const ringGeometry = new T.TorusGeometry(.69,.034,5,18);
-let world, spawn, roads, city, spawnSites;
+let world, spawn, city, spawnSites, streetMap, streetBounds, startYaw;
 let active = false, loading = false, fire = false, jump = false, drag = null;
 let yaw = 0, pitch = 0, vy = 0, grounded = false;
 let health = 100, ammo = 24, remaining = 0, cooldown = 0, reload = 0, hitMarker = 0, last = 0, elapsed = 0, fps = 60, mapClock = 0;
@@ -71,7 +71,7 @@ $('file').addEventListener('change', async event => {
     setStatus('도로와 충돌을 준비하고 있습니다…');
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const imported = prepareCity(city);
-    roads = imported.solids.filter(({mesh,box}) => /^(Street\d+|Pista)$/i.test(mesh.name) &&
+    const roads = imported.solids.filter(({mesh,box}) => /^(Street\d+|Pista)$/i.test(mesh.name) &&
       Math.hypot(box.max.x-box.min.x,box.max.z-box.min.z)>14);
     const startingRoad = roads.find(({mesh}) => mesh.name === 'Street071') || roads[0];
     if (!startingRoad) throw new Error('맵에서 도로를 찾을 수 없습니다.');
@@ -86,6 +86,12 @@ $('file').addEventListener('change', async event => {
       .filter((p,i,list) => list.findIndex(other => other.distanceToSquared(p)<400) === i)
       .slice(0,12);
     if (!spawnSites.length) throw new Error('드론을 배치할 도로를 찾을 수 없습니다.');
+    const eye = spawn.clone().add(new T.Vector3(0,1.65,0));
+    const streetHeading = startingRoad.box.getSize(new T.Vector3());
+    const headings = streetHeading.x > streetHeading.z ? [-Math.PI/2,Math.PI/2] : [0,Math.PI];
+    const clear = angle => imported.trace(eye,new T.Vector3(-Math.sin(angle),0,-Math.cos(angle)),145)?.distance ?? 145;
+    startYaw = clear(headings[0]) >= clear(headings[1]) ? headings[0] : headings[1];
+    buildStreetMap(roads);
     scene.add(city);
     world = imported;
     reset();
@@ -117,7 +123,7 @@ function reset() {
   }
   remaining = enemies.length;
   feet.copy(spawn);
-  yaw = 0; pitch = 0; vy = 0; health = 100; ammo = 24; cooldown = 0; reload = 0; hitMarker = 0; grounded = true;
+  yaw = startYaw; pitch = 0; vy = 0; health = 100; ammo = 24; cooldown = 0; reload = 0; hitMarker = 0; grounded = true;
   camera.position.copy(feet).y += 1.65;
   camera.rotation.set(0,0,0);
 }
@@ -292,11 +298,45 @@ function update(dt) {
   if (!health) pause();
 }
 
+function buildStreetMap(roads) {
+  streetBounds = new T.Box3();
+  for (const {box} of roads) streetBounds.union(box);
+  streetMap = document.createElement('canvas');
+  const span = streetBounds.getSize(new T.Vector3());
+  const density = 1536/Math.max(span.x,span.z);
+  streetMap.width = Math.ceil(span.x*density);
+  streetMap.height = Math.ceil(span.z*density);
+  const roadsContext = streetMap.getContext('2d');
+  const vertex = new T.Vector3();
+  roadsContext.fillStyle = '#7f9996';
+  for (const {mesh} of roads) {
+    const {geometry,matrixWorld} = mesh;
+    const positions = geometry.attributes.position;
+    const index = geometry.index;
+    const count = index?.count ?? positions.count;
+    roadsContext.beginPath();
+    for (let i=0;i<count;i+=3) {
+      for (let corner=0;corner<3;corner++) {
+        const id = index ? index.getX(i+corner) : i+corner;
+        vertex.fromBufferAttribute(positions,id).applyMatrix4(matrixWorld);
+        const x=(vertex.x-streetBounds.min.x)*density;
+        const y=(vertex.z-streetBounds.min.z)*density;
+        if (corner) roadsContext.lineTo(x,y);
+        else roadsContext.moveTo(x,y);
+      }
+      roadsContext.closePath();
+    }
+    roadsContext.fill();
+  }
+}
+
 function drawMap() {
   const size=$('map').width;
   const wide=$('map').classList.contains('open');
-  const centerX=wide?0:feet.x, centerZ=wide?0:feet.z;
-  const scale=wide?size/(world.bounds.max.x-world.bounds.min.x+100):size/360;
+  const centerX=wide?(streetBounds.min.x+streetBounds.max.x)/2:feet.x;
+  const centerZ=wide?(streetBounds.min.z+streetBounds.max.z)/2:feet.z;
+  const width=streetBounds.max.x-streetBounds.min.x, depth=streetBounds.max.z-streetBounds.min.z;
+  const scale=wide?size/(Math.max(width,depth)+100):size/360;
   const x=value=>size/2+(value-centerX)*scale;
   const z=value=>size/2+(value-centerZ)*scale;
   context.fillStyle='#17252c';
@@ -306,10 +346,7 @@ function drawMap() {
     context.beginPath(); context.moveTo(x(i),0); context.lineTo(x(i),size); context.stroke();
     context.beginPath(); context.moveTo(0,z(i)); context.lineTo(size,z(i)); context.stroke();
   }
-  context.fillStyle='#7f9996';
-  for (const {box} of roads) {
-    context.fillRect(x(box.min.x),z(box.min.z),Math.max(1,(box.max.x-box.min.x)*scale),Math.max(1,(box.max.z-box.min.z)*scale));
-  }
+  context.drawImage(streetMap,x(streetBounds.min.x),z(streetBounds.min.z),width*scale,depth*scale);
   context.fillStyle='#ff805c';
   for (const enemy of enemies) {
     if (!enemy.hp) continue;
