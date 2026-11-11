@@ -30,3 +30,5 @@
 #countryatlas{width:100%;height:auto;max-height:40vh;border:1px solid #8fb7a955;border-radius:10px;margin:12px 0}#countrytabs{display:flex;gap:8px}#countrytabs button{min-width:0;padding:11px 24px;font-size:12px}#launchview{position:fixed;z-index:88;left:50%;top:20px;transform:translateX(-50%);background:#102b32e8;border:1px solid #d9d5a366;border-radius:8px;padding:12px 18px;display:flex;gap:20px;align-items:center;color:#f0e7bf;font:12px monospace}#launchview button{min-width:0;padding:9px 12px;font-size:10px}#commandwatch{min-width:0;padding:12px 20px;background:#a9d4ce;color:#153337;margin:8px 0 15px}@media(max-width:700px){#launchview{top:60px;width:95vw;font-size:10px;padding:9px;gap:8px}#countrytabs button{padding:10px 14px}}
 
 label[for=drivefile]{cursor:pointer;display:inline-flex;align-items:center} #drivefile{max-width:14rem;font:inherit;color:inherit} #drivestatus{font-size:.85rem;margin:.25rem 0} #driveleave{margin-left:.5rem}
+
+#mpbutton,#chatbutton,#accountbutton,[data-action=atlas],[data-action=account],[data-action=chat]{display:none!important}
