@@ -109,7 +109,7 @@ const line1Route=[STATIONS[0],STATIONS[1],STATIONS[0]],line2Route=[...STATIONS,S
 function message(text,duration=3){$('notice').textContent=text;noticeTime=duration}
 function sound(kind,volume=1){try{audio??=new (window.AudioContext||window.webkitAudioContext)();audio.resume();const o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.type=kind==='shot'||kind==='cannon'?'sawtooth':'sine';o.frequency.setValueAtTime(kind==='shot'?150:kind==='cannon'?65:kind==='hit'?750:260,audio.currentTime);o.frequency.exponentialRampToValueAtTime(35,audio.currentTime+.14);g.gain.setValueAtTime((kind==='shot'?.08:.04)*volume,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.18);o.start();o.stop(audio.currentTime+.19)}catch{}}
 function tracer(a,b,color=0xffd88d){const radius=mobileMode?450:800;if(effects.length>160||Math.min(Math.hypot(a.x-player.x,a.z-player.z),Math.hypot(b.x-player.x,b.z-player.z))>radius)return;const line=new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(a.x,a.y,a.z),new T.Vector3(b.x,b.y,b.z)]),new T.LineBasicMaterial({color,transparent:true,opacity:.8}));scene.add(line);effects.push({line,time:.12})}
-function updateHud(){$('frontstatus').hidden=!started;$('bagstatus').hidden=!started;bagUI.render();$('bagstatus').textContent='₩ '+wallet.toLocaleString()+' · 구급 '+supplies.medkit+' · 방호 '+supplies.armor+' · I';const w=WEAPONS[selected],item=inventory[selected];$('hp').textContent=Math.ceil(player.health);$('armor').textContent=Math.ceil(player.armor);$('healthbar').style.width=(player.health/PLAYER_MAX_HEALTH*100)+'%';$('ammo').textContent=String(item.ammo).padStart(2,'0');$('reserve').textContent=' / '+item.reserve;$('weaponname').textContent=w.name;$('kills').textContent=`적군 ${String(enemies.length-kills).padStart(2,'0')} / ${enemies.length} · ALLIES ${allies.filter(a=>a.hp>0).length}/${ALLY_COUNT}`;$('gear').textContent=inventory.map((it,i)=>it.owned?`${i+1} ${WEAPONS[i].name.split(' ')[0]}`:null).filter(Boolean).join(' · ');$('district').textContent=districtAt(player.x,player.z);$('objective').textContent=operation.state.phase>0?(operation.state.phase===3?'평양 가상 대통령 제거 · 임무 성공':operation.state.phase===2?'평양 작전 · '+(operation.mode==='tunnel'?'땅굴 대피':operation.mode==='car'?'전용 차량 도주':'도보 도주')+' / 밀착 경호':'평양 잠입 · P 휴대폰에서 작전 확인'):elapsed<30?'대규모 남하까지 '+Math.ceil(30-elapsed)+'초 · DMZ 방어 준비':kills===enemies.length?'도시 확보 완료 · 자유롭게 탐색하세요':'DMZ → 한강 전선 · 북한군 남하 저지';$('frontstatus').textContent=offensiveText();$('civicstatus').textContent='작전: 한반도 북한군 남하 저지'+' · 민간인 사상 '+civic.state.civilianKills+'/15 · '+({free:'수배 없음',wanted:'경찰 추격',station:'경찰서 조사',court:'법원 판결',prison:'교도소 수감'}[civic.state.justice]);$('reloadhint').textContent=reload>0?'재장전 중…':currentVehicle?'E 하차 · SPACE 상승 · C 하강':'B 공격 드론 · R 재장전 · 1–5 무기 변경'}
+function updateHud(){$('frontstatus').hidden=!started;$('bagstatus').hidden=!started;bagUI.render();$('bagstatus').textContent='₩ '+wallet.toLocaleString()+' · 구급 '+supplies.medkit+' · 방호 '+supplies.armor+' · I';const w=WEAPONS[selected],item=inventory[selected];$('hp').textContent=Math.ceil(player.health);$('armor').textContent=Math.ceil(player.armor);$('healthbar').style.width=(player.health/PLAYER_MAX_HEALTH*100)+'%';$('ammo').textContent=String(item.ammo).padStart(2,'0');$('reserve').textContent=' / '+item.reserve;$('weaponname').textContent=w.name;$('kills').textContent=`적군 ${String(enemies.length-kills).padStart(2,'0')} / ${enemies.length} · ALLIES ${allies.filter(a=>a.hp>0).length}/${ALLY_COUNT}`;$('gear').textContent=inventory.map((it,i)=>it.owned?`${i+1} ${WEAPONS[i].name.split(' ')[0]}`:null).filter(Boolean).join(' · ');$('district').textContent=districtAt(player.x,player.z);$('objective').textContent=operation.state.phase>0?(operation.state.phase===3?'평양 가상 대통령 제거 · 임무 성공':operation.state.phase===2?'평양 작전 · '+(operation.mode==='tunnel'?'땅굴 대피':operation.mode==='car'?'전용 차량 도주':'도보 도주')+' / 밀착 경호':'평양 잠입 · P 휴대폰에서 작전 확인'):elapsed<30?'대규모 남하까지 '+Math.ceil(30-elapsed)+'초 · DMZ 방어 준비':kills===enemies.length?'도시 확보 완료 · 자유롭게 탐색하세요':'DMZ → 한강 전선 · 북한군 남하 저지';$('frontstatus').textContent=offensiveText();$('civicstatus').textContent='작전: 한반도 북한군 남하 저지'+' · 민간인 사상 '+civic.state.civilianKills+'/15 · '+({free:'수배 없음',wanted:'경찰 추격',station:'경찰서 조사',court:'법원 판결',prison:'교도소 수감'}[civic.state.justice]);if(driveReturn){const remaining=driveUnits.filter(p=>p.enemy&&p.hp>0).length;const friendly=driveUnits.filter(p=>p.ally&&p.hp>0).length;$('kills').textContent='적군 '+remaining+' / 16 · 아군 '+friendly+' / 6';$('objective').textContent=remaining?'Drive City · 도시 전투':'Drive City · 도시 확보 완료';$('frontstatus').hidden=true;$('civicstatus').textContent='개인 작전 · G 동아시아 전장 복귀'}$('reloadhint').textContent=reload>0?'재장전 중…':currentVehicle?'E 하차 · SPACE 상승 · C 하강':'B 공격 드론 · R 재장전 · 1–5 무기 변경'}
 function offensiveText(){const r=offensive.status(elapsed,!inRoom()||inRoom().isHost);return elapsed<30?'남하 개시 '+Math.ceil(30-elapsed)+'초 전':(['대기','DMZ 교전','한강 접근','한강 돌파','남하 부대 격퇴'][r[0]])+' · '+r[1]+'/3 제파 · 보병 '+r[2]+' / 장비 '+r[3]+'\nDMZ 적 '+r[4]+' · 아군 '+r[6]+' / 한강 적 '+r[5]+' · 아군 '+r[7]}
 function equip(index){if(!inventory[index].owned){message('아직 획득하지 않은 무기입니다. 지도에서 아이템을 찾으세요.');return}selected=index;reload=0;fireCooldown=.2;scope.visible=index===3;sight.visible=index!==3;barrel.scale.z=index===4?2:index===3?1.6:index===1?.65:1;barrel.scale.x=barrel.scale.y=index===4?3:1;updateHud()}
 function doReload(){if(!active||trip||busRide||currentVehicle||reload>0)return;const w=WEAPONS[selected],item=inventory[selected];if(item.ammo===w.mag)return;if(!item.reserve){message('예비 탄약이 없습니다. 탄약 상자를 찾으세요.');return}reload=w.reload;message('재장전 중…',w.reload);sound('reload');updateHud()}
@@ -282,7 +282,7 @@ function enterDrive(){
   else civilians.push(unit);
  }
  for(const [i,type] of ['car','car','tank','helicopter'].entries()){
-  const p=pointAt(sites[i],3);
+  const p=pointAt(sites[i+1],3);
   const v=world.vehicle(type,p.x,p.z,driveMap.heading,false,i);
   v.y=p.y;v.hp=650;v.root.userData.vehicle=v;driveCars.push(v);
  }
@@ -293,7 +293,7 @@ function enterDrive(){
  }
  Object.assign(player,{x:spawn.x,y:spawn.y,z:spawn.z,vy:0,grounded:true});
  yaw=driveMap.heading;pitch=0;drones.recall();refreshCombatIndices(0,true);
- $('driveleave').hidden=false;drawMap();requestPlay();
+ $('driveleave').hidden=false;$('driveagain').hidden=true;drawMap();requestPlay();
  message('Drive City · E 탑승 및 보급 · I 인벤토리 · G 동아시아 복귀',6);
 }
 function leaveDrive(resume=true){
@@ -312,7 +312,7 @@ function leaveDrive(resume=true){
  }
  Object.assign(player,{x:previous.x,y:previous.y,z:previous.z,vy:0,grounded:true});
  yaw=previous.yaw;pitch=previous.pitch;drones.recall();refreshCombatIndices(0,true);
- $('driveleave').hidden=true;
+ $('driveleave').hidden=true;$('driveagain').hidden=false;
  if(resume){drawMap();requestPlay();message('동아시아 전장 복귀')}
 }
 $('drivefile').onchange=async event=>{
@@ -328,7 +328,7 @@ $('drivefile').onchange=async event=>{
   status('첨부 도시 준비 완료');
  }catch(error){status(error.message||'맵을 열 수 없습니다.');input.value='';input.disabled=false}
 };
-$('driveenter').onclick=enterDrive;
+$('driveenter').onclick=$('driveagain').onclick=enterDrive;
 $('driveleave').onclick=()=>leaveDrive();
 
 $('start').onclick=()=>reset();$('resume').onclick=requestPlay;$('restart').onclick=()=>driveReturn?(reset(false),enterDrive()):peninsula.active?respawnNational():inRoom()?respawnNetwork():reset();$('canceltransit').onclick=()=>{stationMenu=null;$('transit').hidden=true;requestPlay()};
